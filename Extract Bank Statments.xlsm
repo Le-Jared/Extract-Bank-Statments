@@ -1,0 +1,46 @@
+' To use this code, replace the FilePath and UserID variables with the appropriate values. For example: ImportExpensesFromFile "C:\path\to\expenses.xlsx", 1
+
+Sub ImportExpensesFromFile(ByVal FilePath As String, ByVal UserID As Variant)
+    Dim ExpensesWorkbook As Workbook
+    Dim SourceSheet As Worksheet
+    Dim CashFlow As Worksheet
+    Dim FileExtension As String
+    Dim StartRow As Long
+    Dim LastRow As Long
+    Dim TargetRow As Long
+    Dim i As Long
+    
+    ' Set references to the worksheets
+    Set CashFlow = ThisWorkbook.Sheets("CashFlow")
+    
+    ' Open the source workbook
+    FileExtension = LCase(Right(FilePath, Len(FilePath) - InStrRev(FilePath, ".")))
+    If FileExtension = "xls" Or FileExtension = "xlsx" Then
+        Set ExpensesWorkbook = Workbooks.Open(FilePath)
+    Else
+        MsgBox "Unsupported file format: " & FileExtension, vbExclamation
+        Exit Sub
+    End If
+    
+    ' Assuming the data is in the first sheet of the source workbook
+    Set SourceSheet = ExpensesWorkbook.Sheets(1)
+    StartRow = 10
+    LastRow = SourceSheet.Cells(SourceSheet.Rows.Count, "A").End(xlUp).Row
+    TargetRow = CashFlow.Cells(CashFlow.Rows.Count, "A").End(xlUp).Row + 1
+    
+    ' Iterate over the rows in the source sheet and copy the expenses to the CashFlow sheet
+    For i = StartRow To LastRow
+        If Not IsEmpty(SourceSheet.Cells(i, 1)) Then ' Check if the row has a transaction date (skip summary rows)
+            ' Convert date to string format
+            CashFlow.Cells(TargetRow, "A").Value = Format(SourceSheet.Cells(i, 1).Value, "yyyy-mm-dd")
+            CashFlow.Cells(TargetRow, "B").Value = Left(SourceSheet.Cells(i, 3).Value, InStr(1, SourceSheet.Cells(i, 3).Value, "SINGAPORE") - 1)
+            CashFlow.Cells(TargetRow, "C").Value = SourceSheet.Cells(i, 7).Value
+            TargetRow = TargetRow + 1
+        End If
+    Next i
+    
+    ' Close the source workbook
+    ExpensesWorkbook.Close SaveChanges:=False
+    
+    MsgBox "Expenses imported successfully!", vbInformation
+End Sub
